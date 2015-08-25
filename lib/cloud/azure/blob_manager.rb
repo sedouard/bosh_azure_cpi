@@ -52,7 +52,7 @@ module Bosh::AzureCloud
         
         @logger.info("create_page_blob: Calculate hash for every block")
 
-        upload_page_blob(container_name, blob_name, blob_size, file_path, 16)
+        upload_page_blob(container_name, blob_name, blob_size, file_path, 4)
       rescue => e
         cloud_error("Failed to upload page blob: #{e.message}\n#{e.backtrace.join("\n")}")
       end
