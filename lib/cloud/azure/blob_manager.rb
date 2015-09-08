@@ -198,6 +198,7 @@ module Bosh::AzureCloud
           block = file_blocks.pop(true)
         rescue
           break if finish_flag.finish
+           @logger.debug("upload_page_blob_func: Thread #{id}: Waiting for More Work")
           sleep(0.01)
           next
         end
