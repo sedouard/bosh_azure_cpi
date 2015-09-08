@@ -160,6 +160,7 @@ module Bosh::AzureCloud
         while !finish_flag.fail do
           if file_blocks.size > thread_num * 5
             sleep(0.01)
+             @logger.debug("read_content_func: Waiting until more work is done")
             next
           end
 
