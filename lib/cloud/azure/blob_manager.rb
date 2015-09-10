@@ -160,6 +160,7 @@ module Bosh::AzureCloud
         while !finish_flag.fail do
           if file_blocks.size > thread_num * 5
             sleep(0.01)
+             @logger.debug("read_content_func: Waiting until more work is done")
             next
           end
 
@@ -191,30 +192,51 @@ module Bosh::AzureCloud
       @logger.debug("read_content_func: Exit")
     end
 
-    def upload_page_blob_func(id, container_name, blob_name, options, file_blocks, finish_flag, max_retry_count)
+    def upload_page_blob_func(id, container_name, blob_name, options, file_blocks, finish_flag, max_retry_count, thread)
       while !finish_flag.fail do
         block = nil
         begin
           block = file_blocks.pop(true)
         rescue
           break if finish_flag.finish
+          @logger.debug("upload_page_blob_func: Thread #{id}: Waiting for More Work")
           sleep(0.01)
           next
         end
 
         retry_count = 0
         begin
+          upload_complete_flag = ThreadFlag.new(false, false, nil)
+          # Azure Ruby SDK doesn't support client-side timeout
+          # This will bail out if a thread gets stuck on an open connction
+          t = Thread.new {
+            count = 0
+            while !upload_complete_flag.finish && count < options.timeout * 100 do
+              sleep(0.01)
+              count = count + 1
+            end
+            seconds = count / 100
+            @logger.debug("Timeout thread for Thread #{id} slept #{seconds} seconds!")
+            if !upload_complete_flag.finish
+              thread.raise("failed to complete upload in #{seconds} seconds")
+            end
+          }
+
           @logger.debug("upload_page_blob_func: Thread #{id}: Uploading #{block.id}: #{block.blob_start_range}, length: #{block.size}, retry: #{retry_count}")
           @blob_service_client.create_blob_pages(container_name, blob_name, block.blob_start_range,
               block.blob_start_range + block.size - 1, block.content, options)
+          upload_complete_flag.finish = true
+          t.join
         rescue => e
           @logger.debug("upload_page_blob_func: Failed to create_blob_pages, error: #{e.message}\n#{e.backtrace.join("\n")}")
           retry_count += 1
+          upload_complete_flag.finish = true
           if retry_count > max_retry_count
             finish_flag.fail = true
             finish_flag.message = e.message
             break
           end
+          t.join
           retry
         end
       end
@@ -245,7 +267,7 @@ module Bosh::AzureCloud
         }
         thread_num.times do |i|
           threads << Thread.new {
-            upload_page_blob_func(i + 1, container_name, blob_name, options, file_blocks, finish_flag, 20)
+            upload_page_blob_func(i + 1, container_name, blob_name, options, file_blocks, finish_flag, 20, Thread.current)
           }
         end
 
