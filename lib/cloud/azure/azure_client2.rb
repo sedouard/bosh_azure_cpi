@@ -396,6 +396,7 @@ module Bosh::AzureCloud
           'properties'  => {
             'frontendPort'        => ports[0],
             'backendPort'         => ports[1],
+            'idleTimeoutInMinutes' => 30,
             'enableFloatingIP'    => false,
             'protocol'            => 'Tcp',
             'frontendIPConfiguration' => {

@@ -52,7 +52,7 @@ module Bosh::AzureCloud
         
         @logger.info("create_page_blob: Calculate hash for every block")
 
-        upload_page_blob(container_name, blob_name, blob_size, file_path, 16)
+        upload_page_blob(container_name, blob_name, blob_size, file_path, 4)
       rescue => e
         cloud_error("Failed to upload page blob: #{e.message}\n#{e.backtrace.join("\n")}")
       end
@@ -265,6 +265,7 @@ module Bosh::AzureCloud
         threads << Thread.new {
           read_content_func(file_path, file_blocks, block_size, thread_num, finish_flag)
         }
+        @logger.info("Starting threads with max thread count: #{thread_num}")
         thread_num.times do |i|
           threads << Thread.new {
             upload_page_blob_func(i + 1, container_name, blob_name, options, file_blocks, finish_flag, 20, Thread.current)
