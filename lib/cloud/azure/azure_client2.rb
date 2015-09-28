@@ -756,7 +756,7 @@ module Bosh::AzureCloud
           raise AzureError, error
         end
       end
-
+      request.finish
       result = nil
       result = JSON(response.body) unless response.body.nil?
     end
@@ -781,6 +781,7 @@ module Bosh::AzureCloud
       end
       api_version = API_VERSION
       api_version = params['api-version'] unless params['api-version'].nil?
+      request.finish
       check_completion(response, api_version, retry_after)
     end
 
@@ -807,6 +808,7 @@ module Bosh::AzureCloud
 
       api_version = API_VERSION
       api_version = params['api-version'] unless params['api-version'].nil?
+      request.finish
       check_completion(response, api_version, retry_after)
     end
 
@@ -831,6 +833,7 @@ module Bosh::AzureCloud
       end
       api_version = API_VERSION
       api_version = params['api-version'] unless params['api-version'].nil?
+      request.finish
       check_completion(response, api_version, retry_after)
     end
   end
